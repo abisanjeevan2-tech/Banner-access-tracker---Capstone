@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Request Form - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">Request Form</div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/grantee/submit" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="form_ids" class="form-label">Forms Requested <span class="required-star">*</span></label>
+            <input type="text" id="form_search" placeholder="Search forms..."
+                   class="form-control" style="margin-bottom: 0.5rem;"
+                   oninput="filterGranteeForms(this)">
+            <select id="form_ids" name="form_ids" class="form-control" multiple required size="8">
+                {% for form in forms %}
+                <option value="{{ form.id }}">{{ form.code }} - {{ form.description }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-text">Hold Ctrl/Cmd to select multiple</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Access Type <span class="required-star">*</span></label>
+            <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                    <input type="radio" name="access_type" value="Read" required
+                           style="width: 16px; height: 16px;">
+                    <span>
+                        <strong>Read</strong>
+                        <span style="color: #666; font-size: 0.875rem;"> — View access only</span>
+                    </span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                    <input type="radio" name="access_type" value="Read/Write"
+                           style="width: 16px; height: 16px;">
+                    <span>
+                        <strong>Read/Write</strong>
+                        <span style="color: #666; font-size: 0.875rem;"> — View and edit access</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="secure_notes" class="form-label">Notes (Optional)</label>
+            <textarea id="secure_notes" name="secure_notes" class="form-control"
+                      placeholder="Any additional information"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="files" class="form-label">Attachments (Optional)</label>
+            <input type="file" id="files" name="files" class="form-control"
+                   multiple accept=".pdf,.docx,.jpeg,.jpg,.png">
+            <small class="form-text">Allowed types: PDF, DOCX, JPEG, PNG. Max 10MB per file.</small>
+        </div>
+
+        <div class="flex flex-gap mt-2">
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a href="/grantee/dashboard" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+
+<script>
+function filterGranteeForms(input) {
+    const filter = input.value.toLowerCase();
+    const select = document.getElementById('form_ids');
+    Array.from(select.options).forEach(option => {
+        const text = option.text.toLowerCase();
+        option.style.display = text.startsWith(filter) ? '' : 'none';
+    });
+}
+</script>
+
+{% endblock %}

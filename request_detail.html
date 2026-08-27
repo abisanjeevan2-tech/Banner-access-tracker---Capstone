@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Review Request #{{ access_request.id }} - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header flex-between">
+        <span>Review Access Request #{{ access_request.id }}</span>
+        <span class="status-badge status-{{ access_request.status.lower().replace(' ', '-') }}">
+            {{ access_request.status }}
+        </span>
+    </div>
+
+    <div class="detail-grid mt-2">
+        <div class="detail-label">Applicant:</div>
+        <div class="detail-value">{{ access_request.applicant.username }}</div>
+
+        <div class="detail-label">CWID:</div>
+        <div class="detail-value">{{ access_request.applicant.cwid }}</div>
+
+        <div class="detail-label">Submitted:</div>
+        <div class="detail-value">{{ access_request.created_at .strftime('%Y-%m-%d %H:%M') }}</div>
+
+        <div class="detail-label">Submitted By:</div>
+        <div class="detail-value">{{ access_request.submitted_by.username }}</div>
+
+        <div class="detail-label">Access Type:</div>
+        <div class="detail-value">
+            <span class="status-badge {% if access_request.access_type == 'Read/Write' %}status-in-progress{% else %}status-approved{% endif %}">
+                {{ access_request.access_type }}
+            </span>
+        </div>
+
+        <div class="detail-label">Forms Requested:</div>
+        <div class="detail-value">
+            {% for form in access_request.forms %}
+            <div style="margin-bottom:0.35rem;">
+                <strong>{{ form.code }}</strong> - {{ form.description }}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if decrypted_notes %}
+        <div class="detail-label">Notes:</div>
+        <div class="detail-value">
+            <div style="background:#f9f9f9;padding:0.75rem;border-radius:4px;border-left:3px solid var(--winthrop-garnet);">
+                {{ decrypted_notes }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if access_request.attachments %}
+        <div class="detail-label">Attachments:</div>
+        <div class="detail-value">
+            {% for att in access_request.attachments %}
+            <div style="margin-bottom:0.5rem;">
+                📎 <strong>{{ att.filename }}</strong>
+                <a href="/grantor/attachments/{{ att.id }}/download"
+                   class="btn btn-sm btn-secondary" style="margin-left:0.5rem;">Download</a>
+                {% if att.content_type == 'application/pdf' or att.filename.endswith('.pdf') %}
+                <button onclick="viewAttachment('/grantor/attachments/{{ att.id }}/view', '{{ att.filename }}')"
+                        class="btn btn-sm btn-primary" style="margin-left:0.25rem;">View</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if approvals %}
+    <h3 class="mt-3 mb-2" style="color: var(--winthrop-garnet);">Approval History</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Grantor</th>
+                    <th>Form</th>
+                    <th>Decision</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in approvals %}
+                <tr>
+                    <td>{{ approval.grantor.username }}</td>
+                    <td>{{ approval.form.code if approval.form else '—' }}</td>
+                    <td>
+                        <span class="status-badge {% if approval.decision == 'approved' %}status-approved{% else %}status-rejected{% endif %}">
+                            {{ approval.decision|title }}
+                        </span>
+                    </td>
+                    <td>{{ approval.comment or '—' }}</td>
+                    <td>{{ approval.created_at .strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if access_request.status == 'Pending' and approvable_forms %}
+    <div class="card mt-3" style="background-color: #f9f9f9;">
+        <h3 class="mb-2" style="color: var(--winthrop-garnet);">Your Decision</h3>
+
+        {% set has_pending_forms = approvable_forms|selectattr('already_approved', 'equalto', false)|list %}
+
+        {% if has_pending_forms %}
+        <!-- Approve section -->
+        <div class="mb-3">
+            <h4 style="color:#333; margin-bottom:0.75rem;">Approve Forms</h4>
+            <p style="color:#666; font-size:0.875rem; margin-bottom:0.75rem;">
+                Select the forms you are approving. Only forms you are authorized for are shown.
+            </p>
+            <form method="POST" action="/grantor/requests/{{ access_request.id }}/approve">
+                {% for item in approvable_forms %}
+                {% if not item.already_approved %}
+                <div style="padding:0.5rem 0; border-bottom:1px solid #eee;">
+                    <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
+                        <input type="checkbox" name="form_ids" value="{{ item.form.id }}"
+                               checked style="width:16px; height:16px;">
+                        <span>
+                            <strong>{{ item.form.code }}</strong>
+                            <span style="color:#666;"> — {{ item.form.description }}</span>
+                        </span>
+                    </label>
+                </div>
+                {% endif %}
+                {% endfor %}
+                <div class="form-group mt-2">
+                    <label class="form-label">Comment (Optional)</label>
+                    <textarea name="comment" class="form-control" rows="2"
+                              placeholder="Add an optional comment..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success mt-2">✓ Approve Selected Forms</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if has_pending_forms %}
+        <!-- Already approved summary -->
+        {% set approved_forms = approvable_forms|selectattr('already_approved', 'equalto', true)|list %}
+        {% if approved_forms %}
+        <div class="alert alert-info">
+            You have already approved:
+            {% for item in approved_forms %}
+            <strong>{{ item.form.code }}</strong>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            You have already approved all forms assigned to you for this request.
+        </div>
+        {% endif %}
+
+        <!-- Deny section -->
+        <div class="mt-3" style="border-top:1px solid #ddd; padding-top:1rem;">
+            <h4 style="color:#862633; margin-bottom:0.75rem;">Deny Entire Request</h4>
+            <form method="POST" action="/grantor/requests/{{ access_request.id }}/deny">
+                <div class="form-group">
+                    <label class="form-label">Reason for Denial <span class="required-star">*</span></label>
+                    <textarea name="comment" class="form-control" rows="2"
+                              placeholder="Required - explain reason for denial..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger">✗ Deny Request</button>
+            </form>
+        </div>
+    </div>
+    {% elif access_request.status != 'Pending' %}
+    <div class="alert alert-info mt-3">
+        This request has been {{ access_request.status.lower() }}.
+    </div>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="/grantor/dashboard" class="btn btn-secondary">← Back</a>
+    </div>
+</div>
+
+<!-- Attachment Viewer Modal -->
+<div id="attachmentModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:2000;">
+    <div style="background:white; margin:2rem auto; width:90%; max-width:900px; height:90vh; border-radius:8px; overflow:hidden; display:flex; flex-direction:column;">
+        <div style="padding:1rem 1.5rem; background:var(--winthrop-garnet); color:white; display:flex; justify-content:space-between; align-items:center;">
+            <span id="attachmentTitle" style="font-weight:bold;"></span>
+            <button onclick="closeAttachment()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">✕</button>
+        </div>
+        <iframe id="attachmentFrame" src="" style="flex:1; border:none; width:100%;"></iframe>
+    </div>
+</div>
+
+<script>
+function viewAttachment(url, filename) {
+    document.getElementById('attachmentTitle').textContent = filename;
+    document.getElementById('attachmentFrame').src = url;
+    document.getElementById('attachmentModal').style.display = 'block';
+}
+function closeAttachment() {
+    document.getElementById('attachmentModal').style.display = 'none';
+    document.getElementById('attachmentFrame').src = '';
+}
+document.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('attachmentModal')) closeAttachment();
+});
+</script>
+
+{% endblock %}

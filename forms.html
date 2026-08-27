@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Manage Forms - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">Manage Forms</div>
+
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">Operation successful!</div>
+    {% endif %}
+
+    <div class="card mb-3" style="background: #f9f9f9;">
+        <h3 class="mb-2" style="color: var(--winthrop-garnet);">Add New Form</h3>
+        <form method="POST" action="/admin/forms/create">
+            <div class="flex flex-gap" style="align-items: flex-end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label class="form-label">Form Code</label>
+                    <input type="text" name="code" placeholder="e.g. FORM-001"
+                           class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" placeholder="Form description"
+                           class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Form</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in forms %}
+                <tr>
+                    <td><strong>{{ form.code }}</strong></td>
+                    <td>{{ form.description }}</td>
+                    <td>
+                        <span class="status-badge {% if form.active %}status-approved{% else %}status-rejected{% endif %}">
+                            {% if form.active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+    <button onclick="editForm({{ form.id }}, '{{ form.code }}', '{{ form.description }}', {{ form.active|lower }})"
+            class="btn btn-sm btn-secondary">Edit</button>
+    <form method="POST" action="/admin/forms/{{ form.id }}/delete" style="display: inline;">
+        <button type="submit" class="btn btn-sm btn-danger"
+                onclick="return confirm('Delete this form?')">Delete</button>
+    </form>
+    <form method="POST" action="/admin/forms/{{ form.id }}/upload-pdf"
+          enctype="multipart/form-data" style="display: inline;">
+        <input type="file" name="pdf_file" accept=".pdf"
+               onchange="this.form.submit()"
+               style="display: none;"
+               id="pdf_{{ form.id }}">
+        <label for="pdf_{{ form.id }}" class="btn btn-sm btn-warning"
+               style="cursor: pointer; margin-bottom: 0;">
+            {% if form.pdf %}Replace PDF{% else %}Upload PDF{% endif %}
+        </label>
+    </form>
+    {% if form.pdf %}
+    <a href="/admin/forms/{{ form.id }}/download-pdf"
+       class="btn btn-sm btn-success">↓ PDF</a>
+    {% endif %}
+</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 100px auto; padding: 2rem; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);">
+        <h3 style="color: var(--winthrop-garnet); margin-bottom: 1.5rem;">Edit Form</h3>
+        <form id="editForm" method="POST">
+            <div class="form-group">
+                <label class="form-label">Code</label>
+                <input type="text" name="code" id="edit_code" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input type="text" name="description" id="edit_description" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" name="active" id="edit_active"> Active
+                </label>
+            </div>
+            <div class="flex flex-gap mt-2">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editForm(id, code, desc, active) {
+    document.getElementById('editForm').action = '/admin/forms/' + id + '/edit';
+    document.getElementById('edit_code').value = code;
+    document.getElementById('edit_description').value = desc;
+    document.getElementById('edit_active').checked = active;
+    document.getElementById('editModal').style.display = 'block';
+}
+function closeEdit() {
+    document.getElementById('editModal').style.display = 'none';
+}
+</script>
+{% endblock %}

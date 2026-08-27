@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Superuser Dashboard - Winthrop University{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">System Overview</div>
+    <div class="detail-grid mt-2">
+        <div class="detail-label">Total Users</div>
+        <div class="detail-value">{{ users_count }}</div>
+    </div>
+    <div class="flex flex-gap mt-3">
+        <a href="/superuser/users" class="btn btn-primary">Manage Users</a>
+    </div>
+</div>
+{% endblock %}

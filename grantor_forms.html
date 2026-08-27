@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Grantor Form Assignments - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">Grantor Form Assignments</div>
+
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">Grantor form assignments updated successfully!</div>
+    {% endif %}
+
+    <p style="color: #666; margin-bottom: 1.5rem;">
+        Select which forms each grantor is authorized to approve.<br>
+        
+    </p>
+
+    {% for grantor in grantors %}
+    <div class="card mb-3" style="{% if request.query_params.get('grantor') == grantor.id|string %}background: #fff8e1; border-left: 3px solid var(--winthrop-gold);{% else %}background: #f9f9f9;{% endif %}">
+        <div class="flex-between mb-2">
+            <h3 style="color: var(--winthrop-garnet);">{{ grantor.username }}</h3>
+            <span style="color: #666; font-size: 0.875rem;">
+                {{ grantor.approved_forms|length }} form(s) assigned
+            </span>
+        </div>
+
+        <form method="POST" action="/admin/grantor-forms/update/{{ grantor.id }}">
+
+            <!-- None checkbox -->
+            <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: #fff0f0; border: 1px solid #ffcccc; border-radius: 4px;">
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-weight: bold;">
+                    <input type="checkbox"
+                           id="none-{{ grantor.id }}"
+                           name="no_forms"
+                           value="1"
+                           {% if grantor.approved_forms|length == 0 %}checked{% endif %}
+                           onchange="toggleNone(this, 'forms-{{ grantor.id }}', 'controls-{{ grantor.id }}')"
+                           style="width: 16px; height: 16px; cursor: pointer;">
+                    <span style="color: #862633;">
+                        None — Remove all form assignments from this grantor
+                    </span>
+                </label>
+            </div>
+
+            <!-- Search and Select All / Clear All -->
+            <div id="controls-{{ grantor.id }}">
+                <div class="form-group">
+                    <input type="text"
+                           placeholder="Search forms..."
+                           class="form-control"
+                           oninput="filterForms(this, 'forms-{{ grantor.id }}')"
+                           style="margin-bottom: 0.75rem;">
+                </div>
+                <div class="flex flex-gap mb-2">
+                    <button type="button" class="btn btn-sm btn-secondary"
+                            onclick="selectAll('forms-{{ grantor.id }}', 'none-{{ grantor.id }}')">Select All</button>
+                    <button type="button" class="btn btn-sm btn-secondary"
+                            onclick="clearAll('forms-{{ grantor.id }}')">Clear All</button>
+                </div>
+            </div>
+
+            <!-- Forms checklist -->
+            <div id="forms-{{ grantor.id }}"
+                 style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 4px; padding: 0.75rem; background: white;
+                 {% if grantor.approved_forms|length == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
+                {% for form in forms %}
+                <div class="form-item" style="padding: 0.35rem 0; border-bottom: 1px solid #f0f0f0;">
+                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                        <input type="checkbox"
+                               name="form_ids"
+                               value="{{ form.id }}"
+                               {% if form in grantor.approved_forms %}checked{% endif %}
+                               style="width: 16px; height: 16px; cursor: pointer;">
+                        <span>
+                            <strong>{{ form.code }}</strong>
+                            <span style="color: #666; font-size: 0.875rem;"> — {{ form.description }}</span>
+                        </span>
+                    </label>
+                </div>
+                {% endfor %}
+
+                {% if not forms %}
+                <p style="color: #666; text-align: center;">No forms found.</p>
+                {% endif %}
+            </div>
+
+            {% if grantor.approved_forms|length == 0 %}
+            <div style="color: #862633; font-size: 0.875rem; margin-top: 0.5rem;">
+                This grantor has no form assignments and will see all pending requests.
+            </div>
+            {% endif %}
+
+            <div class="mt-2">
+                <button type="submit" class="btn btn-primary">Save Assignments</button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
+    {% if not grantors %}
+    <div class="text-center mt-3">
+        <p style="color: #666;">No grantors found in the system.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleNone(noneCheckbox, containerId, controlsId) {
+    const container = document.getElementById(containerId);
+    const controls = document.getElementById(controlsId);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+
+    if (noneCheckbox.checked) {
+        // Uncheck all form checkboxes and disable the container
+        checkboxes.forEach(cb => cb.checked = false);
+        container.style.opacity = '0.4';
+        container.style.pointerEvents = 'none';
+        controls.style.opacity = '0.4';
+        controls.style.pointerEvents = 'none';
+    } else {
+        // Re-enable the container
+        container.style.opacity = '1';
+        container.style.pointerEvents = 'auto';
+        controls.style.opacity = '1';
+        controls.style.pointerEvents = 'auto';
+    }
+}
+
+function filterForms(input, containerId) {
+    const filter = input.value.toLowerCase();
+    const container = document.getElementById(containerId);
+    const items = container.querySelectorAll('.form-item');
+    items.forEach(item => {
+        const code = item.querySelector('strong').textContent.toLowerCase();
+        item.style.display = code.startsWith(filter) ? '' : 'none';
+    });
+}
+
+function selectAll(containerId, noneId) {
+    // Uncheck None first
+    const noneCheckbox = document.getElementById(noneId);
+    if (noneCheckbox.checked) {
+        noneCheckbox.checked = false;
+        toggleNone(noneCheckbox, containerId, containerId.replace('forms-', 'controls-'));
+    }
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.closest('.form-item').style.display !== 'none') {
+            cb.checked = true;
+        }
+    });
+}
+
+function clearAll(containerId) {
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.closest('.form-item').style.display !== 'none') {
+            cb.checked = false;
+        }
+    });
+}
+</script>
+
+{% endblock %}

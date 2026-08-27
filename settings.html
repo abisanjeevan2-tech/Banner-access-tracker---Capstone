@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}System Settings - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">System Settings</div>
+
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">Settings updated successfully!</div>
+    {% endif %}
+
+    <!-- Helpdesk Email Setting -->
+    <div class="card mb-3" style="background: #f9f9f9;">
+        <h3 class="mb-2" style="color: var(--winthrop-garnet);">Help Desk Email</h3>
+        <p style="color: #666; margin-bottom: 1rem;">
+            All approved form request notifications will be sent to this email address.
+            The Help Desk is responsible for distributing approved forms to applicants.
+        </p>
+        <form method="POST" action="/superuser/settings/helpdesk-email">
+            <div class="flex flex-gap" style="align-items: flex-end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label class="form-label">Help Desk Email Address</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ helpdesk_email }}"
+                           placeholder="helpdesk@winthrop.edu" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Email</button>
+            </div>
+        </form>
+    </div>
+
+    
+</div>
+
+
+
+{% endblock %}

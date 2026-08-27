@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Permission Groups - Winthrop University{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">Manage Permission Groups</div>
+
+    {% if request.query_params.get('success') %}
+    <div class="alert alert-success">Operation successful!</div>
+    {% endif %}
+
+    <div class="card mb-3" style="background: #f9f9f9;">
+        <h3 class="mb-2" style="color: var(--winthrop-garnet);">Add New Permission Group</h3>
+        <form method="POST" action="/admin/permission-groups/create">
+            <div class="flex flex-gap" style="align-items: flex-end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label class="form-label">Group Name</label>
+                    <input type="text" name="name" placeholder="e.g. Finance Access"
+                           class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" placeholder="Group description"
+                           class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Group</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                <tr>
+                    <td><strong>{{ group.name }}</strong></td>
+                    <td>{{ group.description }}</td>
+                    <td>
+                        <span class="status-badge {% if group.active %}status-approved{% else %}status-rejected{% endif %}">
+                            {% if group.active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="POST" action="/admin/permission-groups/{{ group.id }}/delete"
+                              style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Delete this group?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
